@@ -1,31 +1,37 @@
 from dotenv import load_dotenv
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import ChatOpenAI
+from langchain.chains import LLMChain
 from langchain_community.chat_models import ChatOllama
 from langchain_core.output_parsers import StrOutputParser
 
 import os
 
-from ice_breaker.third_parties.linkedin import scrape_linkedin_profile
+from agents.linkedin_lookup_agent import lookup as linkedin_lookup_agent 
+from third_parties.linkedin import scrape_linkedin_profile
 
-if __name__ == '__main__':
-    load_dotenv()
-    print("Hello LangChain!")
-    
+
+def ice_breaker_with(name: str) -> str:
+    linkedin_username = linkedin_lookup_agent(name=name)
+    linkedin_data = scrape_linkedin_profile(linkedin_profile_url=linkedin_username)
+
     summary_template = """
     given the information {information} about a cryptocurrency financial news article I want you to create:
     1. A short summary
-    2. Extract the sentiment of the cryptocurrency financial news article. Assign a value of positive, negatie or neutral.
     """
 
     summary_prompt_template = PromptTemplate(
         input_variables=["information"], template=summary_template
     )
-
-    #llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
-    llm = ChatOllama(model="llama3")
-    chain = summary_prompt_template | llm | StrOutputParser()
-    linkedin_data = scrape_linkedin_profile(linkedin_profile_url = "https://gist.githubusercontent.com/Gall-oDrone/e9c0853d6b7d9e46ce4c7ab0c9ba022f/raw/2903594cd8868da7dc8a08abbd5e0ba9e2afc5a8/del-gal.json")
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+    chain = LLMChain(llm=llm, prompt=summary_prompt_template)
     res = chain.invoke(input={"information": linkedin_data})
-
     print(res)
+
+if __name__ == '__main__':
+    load_dotenv()
+    print("Ice Breaker Enter")
+    name="Alfredo Lefranc Flores"
+    ice_breaker_with(name=name)
+
+    
