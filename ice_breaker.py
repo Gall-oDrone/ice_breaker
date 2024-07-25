@@ -1,17 +1,15 @@
+from typing import Tuple
 from dotenv import load_dotenv
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain.chains import LLMChain
-from langchain_community.chat_models import ChatOllama
-from langchain_core.output_parsers import StrOutputParser
 
 import os
 
 from agents.linkedin_lookup_agent import lookup as linkedin_lookup_agent 
 from third_parties.linkedin import scrape_linkedin_profile
-from output_parsers import summary_parser
+from output_parsers import summary_parser, Summary
 
-def ice_breaker_with(name: str) -> str:
+def ice_breaker_with(name: str) -> Tuple[Summary, str]:
     linkedin_username = linkedin_lookup_agent(name=name)
     linkedin_data = scrape_linkedin_profile(
         linkedin_profile_url=linkedin_username,
@@ -35,8 +33,9 @@ def ice_breaker_with(name: str) -> str:
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
     #chain = LLMChain(llm=llm, prompt=summary_prompt_template)
     chain = summary_prompt_template | llm | summary_parser
-    res = chain.invoke(input={"information": linkedin_data})
-    print(res)
+    res:Summary = chain.invoke(input={"information": linkedin_data})
+    
+    return res, linkedin_data.get("profile_pic_url")
 
 if __name__ == '__main__':
     load_dotenv()
